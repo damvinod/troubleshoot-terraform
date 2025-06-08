@@ -42,6 +42,6 @@ jobs:
         id: plan
         run: terraform plan -detailed-exitcode -input=false -out plan.json -lock-timeout=60s
 
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan -detailed-exitcode -input=false -out plan.json -lock-timeout=60s
+      - name: Terraform Apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: terraform apply -auto-approve plan.json
