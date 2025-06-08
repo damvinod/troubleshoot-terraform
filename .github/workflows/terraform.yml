@@ -32,7 +32,7 @@ jobs:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
-          role-to-assume: $AWS_IAM_ROLE
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE }}
           aws-region: us-east-1
 
       - name: Terraform Init
