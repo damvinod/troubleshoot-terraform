@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    region       = "us-east-1"
+    region       = "ap-southeast-1"
     bucket       = "vinod-terraform-test-bucket"
     key          = "merlion/dev/troubleshoot-terraform"
     use_lockfile = true
@@ -8,11 +8,10 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.99.1"
+      version = "~> 4.31.0"
     }
   }
 }
-
 provider "aws" {
   region = "us-west-2"
 }
