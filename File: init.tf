@@ -1,0 +1,20 @@
+
+terraform {
+  backend "s3" {
+    region       = "us-east-1"
+    bucket       = "vinod-terraform-test-bucket"
+    key          = "merlion/dev/troubleshoot-terraform"
+    use_lockfile = true
+  }
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.99.1"
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
+
