@@ -36,7 +36,7 @@ jobs:
           aws-region: us-east-1
 
       - name: Terraform Init
-        run: terraform init -lockfile=readonly
+        run: terraform init
 
       - name: Terraform Plan
         id: plan
