@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    region       = "us-east-1"
+    region       = "ap-southeast-1"
     bucket       = "vinod-terraform-test-bucket"
     key          = "merlion/dev/troubleshoot-terraform"
     use_lockfile = true
