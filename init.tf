@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    region       = "ap-southeast-1"
+    region       = "us-east-1"
     bucket       = "vinod-terraform-test-bucket"
     key          = "merlion/dev/troubleshoot-terraform"
     use_lockfile = true
@@ -12,7 +12,6 @@ terraform {
     }
   }
 }
-
 provider "aws" {
   region = "us-west-2"
 }
