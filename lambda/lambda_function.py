@@ -132,7 +132,8 @@ def get_steps_to_remediate(repo_files_content, error_message):
         </instructions>
         </task>
         """
-    print(f"prompt: {prompt}")
+
+    logger.info("Prompt to get the steps for remediation: %s", prompt)
 
     steps_to_remediate = invoke_bedrock_model(prompt)
     logger.info("Steps to Remediate: %s", steps_to_remediate)
@@ -140,7 +141,6 @@ def get_steps_to_remediate(repo_files_content, error_message):
     return steps_to_remediate
 
 def remediate_code(code, steps_to_remediate):
-    # Updated prompt to ask for only code without any extra comments, delimiters, or explanations
 
     prompt = f"""
         <task>
