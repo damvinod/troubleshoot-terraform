@@ -89,7 +89,7 @@ jobs:
 
       - name: Invoke troubleshoot-terraform Lambda function on failure
         if: |
-          always() && (
+          always() && needs.terraform.result == 'failure' && (
           needs.terraform.outputs.validate_outcome == 'failure' ||
           needs.terraform.outputs.plan_outcome == 'failure' ||
           needs.terraform.outputs.apply_outcome == 'failure'
