@@ -64,7 +64,6 @@ jobs:
       - name: Terraform Validate
         id: validate
         run: terraform validate
-        continue-on-error: true
 
       - name: Terraform Plan
         id: plan
@@ -80,7 +79,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    needs: terraform
+    needs: [terraform]
     steps:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
