@@ -55,7 +55,7 @@ jobs:
           restore-keys: terraform-${{ runner.os }}-${{ runner.arch }}-${{ env.stack }}-
 
       - name: Terraform Init
-        run: TF_PLUGIN_CACHE_DIR="${HOME}/.terraform.d/plugin-cache" terraform init -lockfile=readonly
+        run: TF_PLUGIN_CACHE_DIR="${HOME}/.terraform.d/plugin-cache" terraform init
 
       - name: Terraform Validate
         id: validate
