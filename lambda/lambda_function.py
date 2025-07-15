@@ -15,17 +15,17 @@ logger.setLevel(logging.INFO)
 # Initialize Boto3 clients
 bedrock = boto3.client(service_name='bedrock-runtime')
 
-def fetch_github_actions_details(logs_url):
+GITHUB_HEADERS = {
+    'Accept': 'application/vnd.github+json',
+    'Authorization': f'Bearer {os.environ.get("GITHUB_PAT")}',
+    'User-Agent': 'lambda_function'
+}
 
-    headers = {
-        'Accept': 'application/vnd.github+json',
-        'Authorization': f'Bearer {os.environ.get("GITHUB_PAT")}',
-        'User-Agent': 'lambda_function'
-    }
+def fetch_github_actions_details(logs_url):
 
     try:
         logger.info(f"Fetching logs from logs_url: {logs_url}")
-        logs_response = requests.get(logs_url, headers=headers, timeout=60)
+        logs_response = requests.get(logs_url, headers=GITHUB_HEADERS, timeout=60)
         logs_response.raise_for_status()
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -57,14 +57,11 @@ def extract_error_with_context(log_content):
             error_logs.append(line.strip())
     return "\n".join(error_logs)
 
-def fetch_files_from_github(repo_url, branch_name):
+def fetch_files_from_github(repo_name, branch_name):
     # Fetch repository contents using the GitHub API
-    repo_path = repo_url.split("https://github.com/")[-1].rstrip('/')
-    api_endpoint = f"https://api.github.com/repos/{repo_path}/contents?ref={branch_name}"
+    api_endpoint = f"https://api.github.com/repos/{repo_name}/contents?ref={branch_name}"
 
-    headers = {}
-
-    response = requests.get(api_endpoint, headers=headers, timeout=60)
+    response = requests.get(api_endpoint, headers=GITHUB_HEADERS, timeout=60)
     response.raise_for_status()
 
     files_content = ""
@@ -72,7 +69,7 @@ def fetch_files_from_github(repo_url, branch_name):
 
     for item in response.json():
         if item['type'] == 'file' and any(item['name'].endswith(ext) for ext in terraform_extensions):
-            file_response = requests.get(item['download_url'], headers=headers, timeout=60)
+            file_response = requests.get(item['download_url'], headers=GITHUB_HEADERS, timeout=60)
             file_response.raise_for_status()
             files_content += f"File: {item['name']}\n"
             files_content += file_response.text + "\n\n"
@@ -147,7 +144,7 @@ def remediate_code(code, steps_to_remediate):
 
     return fixed_code
 
-def create_new_branch(fixed_code, repo_url):
+def create_new_branch(fixed_code, repo_name):
     files = {}
 
     fixed_code_json = json.loads(fixed_code.lstrip("```json").split("```")[0].strip())
@@ -162,24 +159,19 @@ def create_new_branch(fixed_code, repo_url):
         files[filename] = content.strip()
 
     # Parse repository path
-    repo_path = urlparse(repo_url).path.strip('/')
-    logger.info(f"Parsed repository path: {repo_path}")
-    headers = {
-        'Accept': 'application/vnd.github+json',
-        'Authorization': f'Bearer {os.environ.get("GITHUB_PAT")}'
-    }
+    logger.info(f"Parsed repository path: {repo_name}")
 
     # Get the base commit SHA
     base_commit = requests.get(
-        f"https://api.github.com/repos/{repo_path}/git/refs/heads/main",
-        headers=headers
+        f"https://api.github.com/repos/{repo_name}/git/refs/heads/main",
+        headers=GITHUB_HEADERS
     ).json()["object"]["sha"]
 
     logger.info(f"Main base_commit sha: {base_commit}")
     # Check if the branch already exists
     if requests.get(
-            f"https://api.github.com/repos/{repo_path}/git/refs/heads/{new_branch_name}",
-            headers=headers
+            f"https://api.github.com/repos/{repo_name}/git/refs/heads/{new_branch_name}",
+            headers=GITHUB_HEADERS
     ).status_code == 200:
         raise ValueError(f"Branch {new_branch_name} already exists.")
 
@@ -187,9 +179,9 @@ def create_new_branch(fixed_code, repo_url):
 
     # Create the new branch
     response = requests.post(
-        f"https://api.github.com/repos/{repo_path}/git/refs",
+        f"https://api.github.com/repos/{repo_name}/git/refs",
         json={"ref": f"refs/heads/{new_branch_name}", "sha": base_commit},
-        headers=headers
+        headers=GITHUB_HEADERS
     )
 
     if response.status_code == 201:
@@ -206,48 +198,43 @@ def create_new_branch(fixed_code, repo_url):
             "encoding": "base64"
         }
         blob_sha = requests.post(
-            f"https://api.github.com/repos/{repo_path}/git/blobs",
+            f"https://api.github.com/repos/{repo_name}/git/blobs",
             json=blob_payload,
-            headers=headers
+            headers=GITHUB_HEADERS
         ).json()["sha"]
         blobs.append({"path": file_name, "mode": "100644", "type": "blob", "sha": blob_sha})
 
     # Create a new tree
     base_tree_sha = requests.get(
-        f"https://api.github.com/repos/{repo_path}/git/trees/{base_commit}",
-        headers=headers
+        f"https://api.github.com/repos/{repo_name}/git/trees/{base_commit}",
+        headers=GITHUB_HEADERS
     ).json()["sha"]
     new_tree_sha = requests.post(
-        f"https://api.github.com/repos/{repo_path}/git/trees",
+        f"https://api.github.com/repos/{repo_name}/git/trees",
         json={"base_tree": base_tree_sha, "tree": blobs},
-        headers=headers
+        headers=GITHUB_HEADERS
     ).json()["sha"]
 
     # Create a new commit
     new_commit_sha = requests.post(
-        f"https://api.github.com/repos/{repo_path}/git/commits",
+        f"https://api.github.com/repos/{repo_name}/git/commits",
         json={"message": commit_message, "tree": new_tree_sha, "parents": [base_commit]},
-        headers=headers
+        headers=GITHUB_HEADERS
     ).json()["sha"]
 
     # Update the branch reference to point to the new commit
     requests.patch(
-        f"https://api.github.com/repos/{repo_path}/git/refs/heads/{new_branch_name}",
+        f"https://api.github.com/repos/{repo_name}/git/refs/heads/{new_branch_name}",
         json={"sha": new_commit_sha},
-        headers=headers
+        headers=GITHUB_HEADERS
     )
 
-    create_pull_request(repo_url, new_branch_name, "main", pr_title, pr_body)
+    create_pull_request(repo_name, new_branch_name, "main", pr_title, pr_body)
 
     return new_branch_name
 
 
-def create_pull_request(repo_url, new_branch_name, base_branch, title, body):
-    repo_path = urlparse(repo_url).path.strip('/')
-    headers = {
-        'Accept': 'application/vnd.github+json',
-        'Authorization': f'Bearer {os.environ.get("GITHUB_PAT")}'
-    }
+def create_pull_request(repo_name, new_branch_name, base_branch, title, body):
 
     pr_payload = {
         "title": title,
@@ -257,9 +244,9 @@ def create_pull_request(repo_url, new_branch_name, base_branch, title, body):
     }
 
     response = requests.post(
-        f"https://api.github.com/repos/{repo_path}/pulls",
+        f"https://api.github.com/repos/{repo_name}/pulls",
         json=pr_payload,
-        headers=headers
+        headers=GITHUB_HEADERS
     )
 
     if response.status_code == 201:
@@ -273,17 +260,15 @@ def lambda_handler(event, context):
     logger.info("Received event: %s", json.dumps(event))
 
     try:
-        repo_url = event['repo_url']
+        repo_name = event['repo_name']
         branch_name = event['branch_name']
         logs_url = event['logs_url']
 
         repo_files_content = ""
         error_message = None
 
-        if repo_url:
-            # Fetch the repo content using the GitHub API
-            repo_files_content = fetch_files_from_github(repo_url, branch_name)
-            logger.info("Fetched repository files content successfully")
+        repo_files_content = fetch_files_from_github(repo_name, branch_name)
+        logger.info("Fetched repository files content successfully")
 
         # Get the latest or specified run error from the Terraform workspace
         error_message = fetch_github_actions_details(logs_url)
@@ -339,7 +324,7 @@ def lambda_handler(event, context):
         logger.info("Response: %s", json.dumps(final_response))
 
         fixed_code = remediate_code(repo_files_content, troubleshooting_steps)
-        create_new_branch(fixed_code, repo_url)
+        create_new_branch(fixed_code, repo_name)
 
         return final_response
 

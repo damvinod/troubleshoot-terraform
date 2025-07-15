@@ -83,11 +83,9 @@ jobs:
             --cli-binary-format raw-in-base64-out \
             --invocation-type Event \
             --payload '{
-              "repo_url": "${{ github.server_url }}/${{ github.repository }}",
+              "repo_name": "${{ github.repository }}",
               "logs_url": "${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/logs",
-              "branch_name": "${{ github.ref_name }}",
-              "workflow_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "job_name": "${{ github.job }}"
+              "branch_name": "${{ github.ref_name }}"
             }' \
             /dev/null
 
