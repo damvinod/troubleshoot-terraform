@@ -48,7 +48,7 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -detailed-exitcode -input=false -out plan.json -lock-timeout=60s
+        run: terraform plan -detailed-exitcode -input=false -out plan.json -lock-timeout=60s -var "github_pat=${{ secrets.PAT_FOR_GITHUB_REPO }}"
 
       - name: Terraform Apply
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

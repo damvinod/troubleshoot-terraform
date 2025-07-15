@@ -1,3 +1,4 @@
 variable "github_pat" {
-  default = ""
+  type = string
+  sensitive = true
 }
