@@ -15,10 +15,7 @@ logger.setLevel(logging.INFO)
 # Initialize Boto3 clients
 bedrock = boto3.client(service_name='bedrock-runtime')
 
-def fetch_github_actions_details(repo_url, branch_name):
-
-    repo_path = repo_url.split("https://github.com/")[-1].rstrip('/')
-    api_endpoint = f"https://api.github.com/repos/{repo_path}/actions/runs?branch={branch_name}"
+def fetch_github_actions_details(logs_url):
 
     headers = {
         'Accept': 'application/vnd.github+json',
@@ -27,41 +24,24 @@ def fetch_github_actions_details(repo_url, branch_name):
     }
 
     try:
-        response = requests.get(api_endpoint, headers=headers, timeout=60)
-        response.raise_for_status()
-        workflow_runs = response.json().get('workflow_runs', [])
+        logger.info(f"Fetching logs from logs_url: {logs_url}")
+        logs_response = requests.get(logs_url, headers=headers, timeout=60)
+        logs_response.raise_for_status()
 
-        if not workflow_runs:
-            logger.info("No workflow runs found for the specified branch.")
-            return "No workflow runs found."
+        with tempfile.TemporaryDirectory() as temp_dir:
+            zip_path = os.path.join(temp_dir, "logs.zip")
 
-        latest_run = workflow_runs[0]  # Get the latest workflow run
-        if latest_run.get("conclusion") == "failure":
-            logs_url = latest_run.get("logs_url")
-            if logs_url:
-                logger.info(f"Fetching logs from logs_url: {logs_url}")
-                logs_response = requests.get(logs_url, headers=headers, timeout=60)
-                logs_response.raise_for_status()
+            with open(zip_path, 'wb') as f:
+                f.write(logs_response.content)
 
-                # Create a temporary directory for the ZIP file
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    zip_path = os.path.join(temp_dir, "logs.zip")
-
-                    # Save the ZIP content
-                    with open(zip_path, 'wb') as f:
-                        f.write(logs_response.content)
-
-                    # Extract and read the terraform log file
-                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                        try:
-                            with zip_ref.open('0_terraform.txt') as tf_log:
-                                log_content = tf_log.read().decode('utf-8')
-                                return extract_error_with_context(log_content)
-                        except KeyError:
-                            logger.warning("0_terraform.txt not found in logs zip")
-                            return "Terraform log file not found in workflow artifacts."
-
-        return "Latest workflow run did not fail."
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                try:
+                    with zip_ref.open('0_terraform.txt') as tf_log:
+                        log_content = tf_log.read().decode('utf-8')
+                        return extract_error_with_context(log_content)
+                except KeyError:
+                    logger.warning("0_terraform.txt not found in logs zip")
+                    return "Terraform log file not found in workflow artifacts."
 
     except requests.exceptions.HTTPError as http_err:
         logger.error(f"HTTP error occurred while fetching GitHub Actions details: {http_err}")
@@ -295,6 +275,7 @@ def lambda_handler(event, context):
     try:
         repo_url = event['repo_url']
         branch_name = event['branch_name']
+        logs_url = event['logs_url']
 
         repo_files_content = ""
         error_message = None
@@ -305,7 +286,7 @@ def lambda_handler(event, context):
             logger.info("Fetched repository files content successfully")
 
         # Get the latest or specified run error from the Terraform workspace
-        error_message = fetch_github_actions_details(repo_url, branch_name)
+        error_message = fetch_github_actions_details(logs_url)
 
         specific_use_case = f"""
         - If the error is with respect to service control policies or resource based policies then inform the user to contact Security team (abc-security@abc.com) as it is a limitation. DO NOT include any other information.

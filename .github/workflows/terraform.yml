@@ -84,8 +84,13 @@ jobs:
             --invocation-type Event \
             --payload '{
               "repo_url": "${{ github.server_url }}/${{ github.repository }}",
+              "logs_url": "${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/logs",
               "branch_name": "${{ github.ref_name }}",
               "workflow_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
               "job_name": "${{ github.job }}"
             }' \
             /dev/null
+
+      - name: Checking Job status
+        if: steps.validate.outcome == 'failure' || steps.plan.outcome == 'failure' || steps.apply.outcome == 'failure'
+        run: exit 1
