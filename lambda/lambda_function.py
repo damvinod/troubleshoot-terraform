@@ -6,13 +6,10 @@ import requests
 import tempfile
 import zipfile
 import base64
-from urllib.parse import urlparse
 
-# Set up logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Initialize Boto3 clients
 bedrock = boto3.client(service_name='bedrock-runtime')
 
 GITHUB_HEADERS = {
@@ -20,6 +17,61 @@ GITHUB_HEADERS = {
     'Authorization': f'Bearer {os.environ.get("GITHUB_PAT")}',
     'User-Agent': 'lambda_function'
 }
+
+def lambda_handler(event, context):
+    logger.info("Received event: %s", json.dumps(event))
+
+    try:
+        repo_name = event['repo_name']
+        branch_name = event['branch_name']
+        logs_url = event['logs_url']
+
+        repo_files_content = fetch_files_from_github(repo_name, branch_name)
+
+        error_message = fetch_github_actions_details(logs_url)
+
+        if repo_files_content == '' or not error_message:
+            raise KeyError("Neither 'repo_files_content' nor 'error_message' were found.")
+
+        steps_to_remediate = get_steps_to_remediate(repo_files_content, error_message)
+
+        fixed_code = remediate_code(repo_files_content, steps_to_remediate)
+
+        create_new_branch(fixed_code, repo_name)
+
+        final_response = {'response': 'success'}
+        logger.info("Response: %s", json.dumps(final_response))
+        return final_response
+
+    except KeyError as ke:
+        logger.error(f"Key error: {str(ke)}")
+        final_response = {'response': f"Missing required information: {str(ke)}"}
+        return final_response
+
+    except Exception as e:
+        logger.error("An error occurred: %s", e, exc_info=True)
+        final_response = {'response': f"Error: {str(e)}"}
+        return final_response
+
+def fetch_files_from_github(repo_name, branch_name):
+    api_endpoint = f"https://api.github.com/repos/{repo_name}/contents?ref={branch_name}"
+
+    response = requests.get(api_endpoint, headers=GITHUB_HEADERS, timeout=60)
+    response.raise_for_status()
+
+    files_content = ""
+    terraform_extensions = ['.tf', '.tfvars']
+
+    for item in response.json():
+        if item['type'] == 'file' and any(item['name'].endswith(ext) for ext in terraform_extensions):
+            file_response = requests.get(item['download_url'], headers=GITHUB_HEADERS, timeout=60)
+            file_response.raise_for_status()
+            files_content += f"File: {item['name']}\n"
+            files_content += file_response.text + "\n\n"
+
+    logger.info("Fetched repository files content successfully")
+
+    return files_content
 
 def fetch_github_actions_details(logs_url):
 
@@ -57,52 +109,35 @@ def extract_error_with_context(log_content):
             error_logs.append(line.strip())
     return "\n".join(error_logs)
 
-def fetch_files_from_github(repo_name, branch_name):
-    # Fetch repository contents using the GitHub API
-    api_endpoint = f"https://api.github.com/repos/{repo_name}/contents?ref={branch_name}"
+def get_steps_to_remediate(repo_files_content, error_message):
+    specific_use_case = f"""
+        - If the error is with respect to service control policies or resource based policies then inform the user to contact Security team (abc-security@abc.com) as it is a limitation. DO NOT include any other information.
+        - If the error is with respect to S3 bucket creation or VPC resource creation, inform the user to contact Platform team (abc-platform@abc.com) as it is a limitation. DO NOT include any other information.
+        """
 
-    response = requests.get(api_endpoint, headers=GITHUB_HEADERS, timeout=60)
-    response.raise_for_status()
+    prompt = f"""
+        <task>
+        You are an expert in troubleshooting Terraform code issues. Below is the full log of GitHub actions, identify the error_message from the logs and use the contents from a Git repository.
 
-    files_content = ""
-    terraform_extensions = ['.tf', '.tfvars']
+        <error_message>
+        {error_message}
+        </error_message>
 
-    for item in response.json():
-        if item['type'] == 'file' and any(item['name'].endswith(ext) for ext in terraform_extensions):
-            file_response = requests.get(item['download_url'], headers=GITHUB_HEADERS, timeout=60)
-            file_response.raise_for_status()
-            files_content += f"File: {item['name']}\n"
-            files_content += file_response.text + "\n\n"
+        <repo_files_content>
+        {repo_files_content}
+        </repo_files_content>
+        
+        <instructions>
+        Provide step-by-step instructions on how to resolve the error by looking into error_message and take into account the repo_files_content while suggesting the fix. Ensure that the troubleshooting steps are provided aligning to {specific_use_case}.
+        </instructions>
+        </task>
+        """
+    print(f"prompt: {prompt}")
 
-    return files_content
+    steps_to_remediate = invoke_bedrock_model(prompt)
+    logger.info("Steps to Remediate: %s", steps_to_remediate)
 
-def invoke_bedrock_model(prompt):
-    try:
-        # Set Claude model ID directly
-        model_id = "amazon.titan-text-premier-v1:0"
-        body = json.dumps({
-            "inputText": prompt,
-            "textGenerationConfig": {
-                "temperature": 0.7,
-                "topP": 0.9,
-                "maxTokenCount": 3072,
-                "stopSequences": []
-            }
-        })
-
-        response = bedrock.invoke_model(
-            modelId=model_id,
-            body=body,
-            accept="application/json",
-            contentType="application/json"
-        )
-
-        response_body = json.loads(response.get('body').read())
-        return response_body['results'][0]['outputText']
-
-    except Exception as e:
-        logger.error(f"Error invoking Bedrock model: {e}")
-        raise
+    return steps_to_remediate
 
 def remediate_code(code, steps_to_remediate):
     # Updated prompt to ask for only code without any extra comments, delimiters, or explanations
@@ -256,104 +291,30 @@ def create_pull_request(repo_name, new_branch_name, base_branch, title, body):
         logger.error(f"Failed to create pull request. Response: {response.status_code}, {response.text}")
         raise Exception("Failed to create pull request.")
 
-def lambda_handler(event, context):
-    logger.info("Received event: %s", json.dumps(event))
-
+def invoke_bedrock_model(prompt):
     try:
-        repo_name = event['repo_name']
-        branch_name = event['branch_name']
-        logs_url = event['logs_url']
-
-        repo_files_content = ""
-        error_message = None
-
-        repo_files_content = fetch_files_from_github(repo_name, branch_name)
-        logger.info("Fetched repository files content successfully")
-
-        # Get the latest or specified run error from the Terraform workspace
-        error_message = fetch_github_actions_details(logs_url)
-
-        specific_use_case = f"""
-        - If the error is with respect to service control policies or resource based policies then inform the user to contact Security team (abc-security@abc.com) as it is a limitation. DO NOT include any other information.
-        - If the error is with respect to S3 bucket creation or VPC resource creation, inform the user to contact Platform team (abc-platform@abc.com) as it is a limitation. DO NOT include any other information.
-        """
-
-        print(f'error: {error_message}')
-        #print(f'repo: {repo_files_content}')
-        if error_message is None and repo_files_content == '':
-            raise KeyError("Neither 'files_content' nor 'error_message' were found in the response from Lambda 2")
-
-        # Construct the prompt for the Bedrock model
-        prompt = f"""
-        <task>
-        You are an expert in troubleshooting Terraform code issues. Below is the full log of GitHub actions, identify the error_message from the logs and use the contents from a Git repository.
-
-        <error_message>
-        {error_message}
-        </error_message>
-
-        <repo_files_content>
-        {repo_files_content}
-        </repo_files_content>
-        
-        <instructions>
-        Provide step-by-step instructions on how to resolve the error by looking into error_message and take into account the repo_files_content while suggesting the fix. Ensure that the troubleshooting steps are provided aligning to {specific_use_case}.
-        </instructions>
-        </task>
-        """
-        print(f"prompt: {prompt}")
-        # Invoke Bedrock model to get troubleshooting steps
-        troubleshooting_steps = invoke_bedrock_model(prompt)
-        logger.info("Generated troubleshooting steps: %s", troubleshooting_steps)
-
-        response_body = {
-            "TEXT": {
-                "body": troubleshooting_steps
+        # Set Claude model ID directly
+        model_id = "amazon.titan-text-premier-v1:0"
+        body = json.dumps({
+            "inputText": prompt,
+            "textGenerationConfig": {
+                "temperature": 0.7,
+                "topP": 0.9,
+                "maxTokenCount": 3072,
+                "stopSequences": []
             }
-        }
+        })
 
-        # Prepare the action response
-        action_response = {
-            'functionResponse': {
-                'responseBody': response_body
-            }
-        }
+        response = bedrock.invoke_model(
+            modelId=model_id,
+            body=body,
+            accept="application/json",
+            contentType="application/json"
+        )
 
-        # Final response structure expected by Bedrock agent
-        final_response = {'response': action_response, 'messageVersion': event['messageVersion']}
-        logger.info("Response: %s", json.dumps(final_response))
-
-        fixed_code = remediate_code(repo_files_content, troubleshooting_steps)
-        create_new_branch(fixed_code, repo_name)
-
-        return final_response
-
-    except KeyError as ke:
-        logger.error(f"Key error: {str(ke)}")
-        response_body = {
-            "TEXT": {
-                "body": f"Missing required information: {str(ke)}"
-            }
-        }
-        action_response = {
-            'functionResponse': {
-                'responseBody': response_body
-            }
-        }
-        final_response = {'response': action_response, 'messageVersion': event['messageVersion']}
-        return final_response
+        response_body = json.loads(response.get('body').read())
+        return response_body['results'][0]['outputText']
 
     except Exception as e:
-        logger.error("An error occurred: %s", e, exc_info=True)
-        response_body = {
-            "TEXT": {
-                "body": f"Error: {str(e)}"
-            }
-        }
-        action_response = {
-            'functionResponse': {
-                'responseBody': response_body
-            }
-        }
-        final_response = {'response': action_response, 'messageVersion': event['messageVersion']}
-        return final_response
+        logger.error(f"Error invoking Bedrock model: {e}")
+        raise
