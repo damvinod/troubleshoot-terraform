@@ -73,6 +73,6 @@ jobs:
               "repo_url": "${{ github.server_url }}/${{ github.repository }}",
               "branch": "${{ github.ref }}",
               "workflow_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "job_name": "${{ github.job }}",
+              "job_name": "${{ github.job }}"
             }' \
             /dev/null
