@@ -1,4 +1,3 @@
-variable "environment" {
-  description = "Required variable for isolating environments"
-  default     = "dev"
+variable "github_pat" {
+  default = ""
 }

@@ -21,6 +21,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -28,6 +33,9 @@ jobs:
 
       - name: Terraform Format
         run: terraform fmt -check
+
+      - name: Install dependencies and package Lambda function
+        run: pip install -r lambda/requirements.txt -t lambda
 
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1

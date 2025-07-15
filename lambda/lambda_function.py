@@ -293,11 +293,8 @@ def lambda_handler(event, context):
     logger.info("Received event: %s", json.dumps(event))
 
     try:
-        workspace_url = event['workspace_url']
         repo_url = event['repo_url']
         branch_name = event['branch_name']
-        actionGroup = event['actionGroup']
-        function = event['function']
 
         repo_files_content = ""
         error_message = None
@@ -343,7 +340,7 @@ def lambda_handler(event, context):
         troubleshooting_steps = invoke_bedrock_model(prompt)
         logger.info("Generated troubleshooting steps: %s", troubleshooting_steps)
 
-        responseBody = {
+        response_body = {
             "TEXT": {
                 "body": troubleshooting_steps
             }
@@ -351,10 +348,8 @@ def lambda_handler(event, context):
 
         # Prepare the action response
         action_response = {
-            'actionGroup': actionGroup,
-            'function': function,
             'functionResponse': {
-                'responseBody': responseBody
+                'responseBody': response_body
             }
         }
 
@@ -369,16 +364,14 @@ def lambda_handler(event, context):
 
     except KeyError as ke:
         logger.error(f"Key error: {str(ke)}")
-        responseBody = {
+        response_body = {
             "TEXT": {
                 "body": f"Missing required information: {str(ke)}"
             }
         }
         action_response = {
-            'actionGroup': actionGroup,
-            'function': function,
             'functionResponse': {
-                'responseBody': responseBody
+                'responseBody': response_body
             }
         }
         final_response = {'response': action_response, 'messageVersion': event['messageVersion']}
@@ -386,16 +379,14 @@ def lambda_handler(event, context):
 
     except Exception as e:
         logger.error("An error occurred: %s", e, exc_info=True)
-        responseBody = {
+        response_body = {
             "TEXT": {
                 "body": f"Error: {str(e)}"
             }
         }
         action_response = {
-            'actionGroup': actionGroup,
-            'function': function,
             'functionResponse': {
-                'responseBody': responseBody
+                'responseBody': response_body
             }
         }
         final_response = {'response': action_response, 'messageVersion': event['messageVersion']}
