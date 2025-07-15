@@ -102,7 +102,7 @@ def fetch_files_from_github(repo_url, branch_name):
 def invoke_bedrock_model(prompt):
     try:
         # Set Claude model ID directly
-        model_id = "amazon.titan-text-premier-v1:0"
+        model_id = "amazon.nova-pro-v1:0"
         body = json.dumps({
             "inputText": prompt,
             "textGenerationConfig": {

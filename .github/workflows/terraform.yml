@@ -79,7 +79,7 @@ jobs:
         run: |
           aws lambda invoke \
             --function-name terraform-troubleshoot-lambda \
-            --region ap-southeast-1 \
+            --region us-east-1 \
             --cli-binary-format raw-in-base64-out \
             --invocation-type Event \
             --payload '{
