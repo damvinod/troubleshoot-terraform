@@ -43,6 +43,8 @@ resource "aws_lambda_function" "my_lambda_function" {
   role             = aws_iam_role.lambda_exec_role.arn
   filename         = data.archive_file.lambda_zip_archive.output_path
   source_code_hash = data.archive_file.lambda_zip_archive.output_base64sha256
+  timeout          = 60
+  memory_size      = 512
 
   environment {
     variables = {
