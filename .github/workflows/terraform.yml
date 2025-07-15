@@ -84,7 +84,7 @@ jobs:
             --invocation-type Event \
             --payload '{
               "repo_url": "${{ github.server_url }}/${{ github.repository }}",
-              "branch": "${{ github.ref_name }}",
+              "branch_name": "${{ github.ref_name }}",
               "workflow_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
               "job_name": "${{ github.job }}"
             }' \
