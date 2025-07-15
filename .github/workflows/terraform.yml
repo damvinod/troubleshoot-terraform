@@ -82,6 +82,7 @@ jobs:
       run:
         shell: bash
     needs: [terraform]
+    if: ${{ failure() && needs.terraform.result == 'failure' }}
     steps:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
@@ -90,7 +91,6 @@ jobs:
           aws-region: us-east-1
 
       - name: Invoke troubleshoot-terraform Lambda function on failure
-        if: ${{ failure() }}
         run: |
           aws lambda invoke \
             --function-name terraform-troubleshoot-lambda \
