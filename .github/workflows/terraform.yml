@@ -47,10 +47,30 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Terraform Validate
+        run: terraform validate
+
       - name: Terraform Plan
         id: plan
         run: terraform plan -detailed-exitcode -input=false -out plan.json -lock-timeout=60s -var "github_pat=${{ secrets.PAT_FOR_GITHUB_REPO }}"
+        continue-on-error: true
 
       - name: Terraform Apply
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.plan.outcome == 'success'
         run: terraform apply -auto-approve plan.json
+        continue-on-error: true
+
+      - name: Invoke troubleshoot-terraform Lambda function on failure
+        if: steps.plan.outcome == 'failure' || steps.apply.outcome == 'failure'
+        run: |
+          aws lambda invoke \
+            --function-name terraform-troubleshoot-lambda \
+            --invocation-type Event \
+            --payload '{
+              "repo_url": "${{ github.server_url }}/${{ github.repository }}",
+              "branch": "${{ github.ref }}",
+              "workflow_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "job_name": "${{ github.job }}",
+            }' \
+            /dev/null
