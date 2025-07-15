@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   terraform:
+    name: 'Terraform'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -75,6 +76,7 @@ jobs:
         run: terraform apply -auto-approve plan.json
 
   invoke-troubleshoot-terraform:
+    name: 'Invoke Troubleshoot Terraform'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -88,8 +90,7 @@ jobs:
           aws-region: us-east-1
 
       - name: Invoke troubleshoot-terraform Lambda function on failure
-        if: |
-          always() && needs.terraform.result == 'failure'
+        if: ${{ failure() }}
         run: |
           aws lambda invoke \
             --function-name terraform-troubleshoot-lambda \
