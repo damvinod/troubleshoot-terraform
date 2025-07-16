@@ -99,7 +99,7 @@ def get_steps_to_remediate(repo_files_content, error_message):
 
     prompt = f"""
         <task>
-        You are an expert in troubleshooting Terraform code issues. Below is the full log of GitHub actions, identify the error_message from the logs and use the contents from a Git repository.
+        You are an expert in troubleshooting Terraform code issues. Your role is to diagnose the root cause of an error and provide clear, step-by-step instructions for another AI to follow.
 
         <error_message>
         {error_message}
@@ -110,7 +110,9 @@ def get_steps_to_remediate(repo_files_content, error_message):
         </repo_files_content>
         
         <instructions>
-        Provide step-by-step instructions on how to resolve the error by looking into error_message and take into account the repo_files_content while suggesting the fix.
+        1.  Provide a detailed "Root Cause Analysis" of the error.
+        2.  Provide numbered, "Step-by-Step Resolution" instructions.
+        3.  **Crucially, do NOT include any corrected code snippets or full code files in your response.** Your only output should be the analysis and the instructional steps.
         </instructions>
         </task>
         """
@@ -126,7 +128,8 @@ def remediate_code(repo_files_content, steps_to_remediate):
 
     prompt = f"""
         <task>
-        You are an expert in fixing Terraform code issues. Below are the steps to fix the issue and the terraform file contents of a Git repository.
+        You are an expert automated code modification agent. Your task is to apply a set of instructions to a codebase and return a valid JSON object containing the full, modified files.
+        </task>
 
         <steps_to_remediate>
         {steps_to_remediate}
@@ -137,10 +140,12 @@ def remediate_code(repo_files_content, steps_to_remediate):
         </repo_files_content>
         
         <instructions>
-        Fix the identified issues in the code and return only the files which are modified in same format.
+        1.  Your source of truth for the original code is the `<repo_files_content>`.
+        2.  Apply the changes described in the `<steps_to_remediate>`. If the steps include a code snippet, **ignore the snippet** and use only the text instructions to perform the modification.
+        3.  The `files` object in your JSON response **MUST contain the COMPLETE and ENTIRE content of each modified file.** Do not return only the changed lines or blocks.
+        4.  Return a single, valid JSON object enclosed in a `json` markdown code block, as shown in the format below.
         </instructions>
         <output_format>
-        Return a JSON object with the following fields (**no other text or explanations**) and enclose it within triple backticks with `json` as the language, like this:
         ```json
         {{
           "commit_message": "Fix: A short, clear explanation of the fix based on the root cause analysis.",
