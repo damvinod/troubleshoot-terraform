@@ -150,23 +150,26 @@ def remediate_code(repo_files_content, steps_to_remediate):
         
         <instructions>
         1.  Carefully follow the instructions in `<steps_to_remediate>`.
-        2.  Apply the fixes to the code provided in `<repo_files_content>`.
-        4.  **Your entire response must ONLY be the JSON object and nothing else.**
-        5.  Do not include unchanged files in the `files` object.
-        6.  Final response must strictly follow the format shown in the example below, including the ` ```json ` code fence.
-            ```json
-            {{
-              "files": {{
-                "path/to/modified_file_1.tf": "<The **entire** content of the modified file as a single, escaped JSON string.>",
-                "path/to/modified_file_2.tf": "<The **entire** content of the modified file as a single, escaped JSON string.>"
-              }},
-              "commit_message": "Fix: A short, clear explanation of the fix based on the root cause analysis.",
-              "branch_name": "fix: Short branch name based on the root cause analysis with unique 10 digit number",
-              "pr_title": "Fix: A concise title for the pull request.",
-              "pr_body": "A detailed description for the pull request, based on the Root Cause Analysis and Step-by-Step Resolution."
-            }}
-            ```
+        2.  Apply the fixes to the code provided in `<original_code>`.
+        3.  Generate a JSON object according to the specified `<output_format>`.
+        4.  The JSON object must be the only thing you return and use ```json code fences. Do not add any text before or after it.
+        5.  The "files" object in the JSON should only contain files that were actually modified. Do not include unchanged files.
         </instructions>
+    
+        <output_format>
+        ```json
+        {{
+          "files": {{
+            "path/to/modified_file_1.tf": "<the entire content of the modified file and as escaped JSON string>",
+            "path/to/modified_file_2.tf": "<the entire content of the modified file and as escaped JSON string>"
+          }},
+          "commit_message": "Fix: A short, clear explanation of the fix based on the root cause analysis.",
+          "branch_name": "fix: Short branch name based on the root cause analysis with unique 10 digit number",
+          "pr_title": "Fix: A concise title for the pull request.",
+          "pr_body": "A detailed description for the pull request, based on the Root Cause Analysis and Step-by-Step Resolution."
+        }}
+        ```
+        </output_format>
         """
 
     logger.info("Prompt for remediation: %s", prompt)
