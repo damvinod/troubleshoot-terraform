@@ -3,8 +3,6 @@ import logging
 import os
 import boto3
 import requests
-import tempfile
-import zipfile
 import base64
 
 logger = logging.getLogger()
@@ -98,14 +96,13 @@ def extract_error_with_context(log_content):
     return ""
 
 def get_steps_to_remediate(repo_files_content, error_message):
-    specific_use_case = f"""
-        - If the error is with respect to service control policies or resource based policies then inform the user to contact Security team (abc-security@abc.com) as it is a limitation. DO NOT include any other information.
-        - If the error is with respect to S3 bucket creation or VPC resource creation, inform the user to contact Platform team (abc-platform@abc.com) as it is a limitation. DO NOT include any other information.
-        """
 
     prompt = f"""
         <task>
-        You are an expert in troubleshooting Terraform code issues. Below is the full log of GitHub actions, identify the error_message from the logs and use the contents from a Git repository.
+        You are an expert in troubleshooting Terraform code issues. Your goal is to provide a complete solution that not only fixes the immediate error but also aligns with industry best practices.
+        
+        You will be given a Terraform error message and the content of the relevant files from a Git repository.
+        </task>
 
         <error_message>
         {error_message}
@@ -116,9 +113,17 @@ def get_steps_to_remediate(repo_files_content, error_message):
         </repo_files_content>
         
         <instructions>
-        Provide step-by-step instructions on how to resolve the error by looking into error_message and take into account the repo_files_content while suggesting the fix. Ensure that the troubleshooting steps are provided aligning to {specific_use_case}.
+        Carefully analyze the error message in the context of the provided repository files and generate a response with the following markdown structure. Do not add any other commentary.
+    
+        ### Root Cause Analysis
+        Explain what the error message means and the specific reason it is occurring based on the provided code.
+    
+        ### Step-by-Step Resolution
+        Provide clear, numbered steps to fix the issue. Reference file paths and line numbers where possible.
+    
+        ### Corrected Code Snippet
+        Show the exact code block(s) that need to be changed, presenting the corrected version. Use ```hcl code fences for the snippets.
         </instructions>
-        </task>
         """
 
     logger.info("Prompt to get the steps for remediation: %s", prompt)
@@ -128,37 +133,43 @@ def get_steps_to_remediate(repo_files_content, error_message):
 
     return steps_to_remediate
 
-def remediate_code(code, steps_to_remediate):
+def remediate_code(repo_files_content, steps_to_remediate):
 
     prompt = f"""
         <task>
-        You are an expert in fixing Terraform code issues. Below are the steps to fix the issue and the contents of a Git repository.
-
+        You are an expert automated code modification agent. Your task is to implement changes in Terraform code based on a provided remediation plan.
+        </task>
+        
         <steps_to_remediate>
         {steps_to_remediate}
         </steps_to_remediate>
 
         <repo_files_content>
-        {code}
+        {repo_files_content}
         </repo_files_content>
         
         <instructions>
-        Fix the identified issues in the code and return only the files which are modified in same format.
+        1.  Carefully follow the instructions in `<steps_to_remediate>`.
+        2.  Apply the fixes to the code provided in `<original_code>`.
+        3.  Generate a JSON object according to the specified `<output_format>`.
+        4.  The JSON object must be the only thing you return. Do not add any text before or after it.
+        5.  The "files" object in the JSON should only contain files that were actually modified. Do not include unchanged files.
+        6.  The "branch_name" should be in the format `fix/short-description-12345` where 12345 is a random identifier.
         </instructions>
+    
         <output_format>
-        Return a JSON object with the following fields (no other text or explanations):
+        Return a single, valid JSON object with the following structure:
         {{
           "files": {{
-            "path/to/modified_file_1.tf": "<modified file contents>",
-            "path/to/modified_file_2.tf": "<modified file contents>"
+            "path/to/modified_file_1.tf": "<the entire content of the modified file>",
+            "path/to/modified_file_2.tf": "<the entire content of the modified file>"
           }},
-          "commit_message": "Short and clear explanation of the fix",
-          "branch_name": "descriptive_branch_name",
-          "pr_title": "title_for_pull_request",
-          "pr_body": "description_for_pull_request"
+          "commit_message": "Fix: A short, clear explanation of the fix based on the root cause analysis.",
+          "branch_name": "descriptive-branch-name-with-unique-id",
+          "pr_title": "Fix: A concise title for the pull request.",
+          "pr_body": "A detailed description for the pull request, based on the Root Cause Analysis and Step-by-Step Resolution."
         }}
         </output_format>
-        </task>
         """
 
     fixed_code = invoke_bedrock_model(prompt)
