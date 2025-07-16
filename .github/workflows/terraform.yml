@@ -82,7 +82,7 @@ jobs:
       run:
         shell: bash
     needs: terraform
-    if: ${{ failure() && (
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && failure() && (
       needs.terraform.outputs.validate_outcome == 'failure' ||
       needs.terraform.outputs.plan_outcome == 'failure' ||
       needs.terraform.outputs.apply_outcome == 'failure'
