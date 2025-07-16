@@ -74,7 +74,7 @@ def fetch_files_from_github(repo_name, branch_name):
 def fetch_github_actions_details(logs_url):
 
     try:
-        logger.info("Fetching logs from logs_url: {logs_url}")
+        logger.info(f"Fetching logs from logs_url: {logs_url}")
         logs_response = requests.get(logs_url, headers=GITHUB_HEADERS, timeout=60)
         logs_response.raise_for_status()
 
@@ -140,17 +140,17 @@ def remediate_code(repo_files_content, steps_to_remediate):
         Fix the identified issues in the code and return only the files which are modified in same format.
         </instructions>
         <output_format>
-        Return a JSON object with the following fields (**no other text or explanations**) and enclose ```json code fences:
+        Return a JSON object with the following fields (**no other text or explanations**) and enclose it within triple backticks with `json` as the language, like this:
         ```json
         {{
-          "files": {{
-            "path/to/modified_file_1.tf": "<modified file contents as escaped JSON string>",
-            "path/to/modified_file_2.tf": "<modified file contents as escaped JSON string>"
-          }},
           "commit_message": "Fix: A short, clear explanation of the fix based on the root cause analysis.",
           "branch_name": "fix: Short branch name based on the root cause analysis with unique 10 digit number",
           "pr_title": "Fix: A concise title for the pull request.",
-          "pr_body": "A detailed description for the pull request, based on the Root Cause Analysis and Step-by-Step Resolution."
+          "pr_body": "A detailed description for the pull request, based on the Root Cause Analysis and Step-by-Step Resolution.",
+          "files": {{
+            "path/to/modified_file_1.tf": "<modified file contents as escaped JSON string>",
+            "path/to/modified_file_2.tf": "<modified file contents as escaped JSON string>"
+          }}
         }}
         ```
         </output_format>
@@ -179,12 +179,11 @@ def create_new_branch(fixed_code, repo_name):
     for filename, content in fixed_code_json.get("files").items():
         files[filename] = content.strip()
 
-    logger.info("New branch name: {new_branch_name}")
-    logger.info("Commit Message: {commit_message}")
-    logger.info("PR Title: {pr_title}")
-    logger.info("PR body: {pr_body}")
-
-    logger.info("Parsed repository path: {repo_name}")
+    logger.info(f"New branch name: {new_branch_name}")
+    logger.info(f"Commit Message: {commit_message}")
+    logger.info(f"PR Title: {pr_title}")
+    logger.info(f"PR body: {pr_body}")
+    logger.info(f"Parsed repository path: {repo_name}")
 
     # Get the base commit SHA
     base_commit = requests.get(
@@ -192,7 +191,7 @@ def create_new_branch(fixed_code, repo_name):
         headers=GITHUB_HEADERS
     ).json()["object"]["sha"]
 
-    logger.info("Main base_commit sha: {base_commit}")
+    logger.info(f"Main base_commit sha: {base_commit}")
     # Check if the branch already exists
     if requests.get(
             f"https://api.github.com/repos/{repo_name}/git/refs/heads/{new_branch_name}",
@@ -200,7 +199,7 @@ def create_new_branch(fixed_code, repo_name):
     ).status_code == 200:
         raise ValueError(f"Branch {new_branch_name} already exists.")
 
-    logger.info("Branch not exists so creating: {new_branch_name}")
+    logger.info(f"Branch not exists so creating: {new_branch_name}")
 
     # Create the new branch
     response = requests.post(
@@ -210,7 +209,7 @@ def create_new_branch(fixed_code, repo_name):
     )
 
     if response.status_code == 201:
-        logger.info("Branch created: {new_branch_name}")
+        logger.info(f"Branch created: {new_branch_name}")
     else:
         logger.error("Failed to create branch {new_branch_name}. Response: {response.status_code}, {response.text}")
         raise Exception(f"Failed to create branch {new_branch_name}.")
@@ -275,7 +274,7 @@ def create_pull_request(repo_name, new_branch_name, base_branch, title, body):
     )
 
     if response.status_code == 201:
-        logger.info("Pull request created successfully: {response.json().get('html_url')}")
+        logger.info(f"Pull request created successfully: {response.json().get('html_url')}")
         return response.json().get('html_url')
     else:
         logger.error("Failed to create pull request. Response: {response.status_code}, {response.text}")
