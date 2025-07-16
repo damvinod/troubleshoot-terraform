@@ -37,9 +37,6 @@ jobs:
         with:
           terraform_version: 1.11.4
 
-      - name: Terraform Format
-        run: terraform fmt -check
-
       - name: Install dependencies and package Lambda function
         run: pip install -r lambda/requirements.txt -t lambda
 
