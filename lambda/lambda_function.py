@@ -28,7 +28,7 @@ def lambda_handler(event, context):
 
         error_message = fetch_github_actions_details(logs_url)
 
-        if repo_files_content == '' or not error_message:
+        if repo_files_content == '' or error_message == '':
             raise KeyError("Neither 'repo_files_content' nor 'error_message' were found.")
 
         steps_to_remediate = get_steps_to_remediate(repo_files_content, error_message)
