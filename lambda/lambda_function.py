@@ -120,9 +120,7 @@ def get_steps_to_remediate(repo_files_content, error_message):
     
         ### Step-by-Step Resolution
         Provide clear, numbered steps to fix the issue. Reference file paths and line numbers where possible.
-    
-        ### Corrected Code Snippet
-        Show the exact code block(s) that need to be changed, presenting the corrected version. Use ```hcl code fences for the snippets.
+        Provide clear, numbered steps to fix the issue. Reference file paths and line numbers where possible.
         </instructions>
         """
 
