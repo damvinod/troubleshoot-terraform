@@ -135,9 +135,8 @@ def remediate_code(repo_files_content, steps_to_remediate):
 
     prompt = f"""
         <task>
-        You are an expert automated code modification agent. Your task is to implement changes in Terraform code based on a provided remediation plan and return valid JSON object. You MUST NOT output any other text or explanations.
-        </task>
-        
+        You are an expert in fixing Terraform code issues. Below are the steps to fix the issue and the terraform file contents of a Git repository.
+
         <steps_to_remediate>
         {steps_to_remediate}
         </steps_to_remediate>
@@ -147,19 +146,15 @@ def remediate_code(repo_files_content, steps_to_remediate):
         </repo_files_content>
         
         <instructions>
-        1.  Carefully follow the instructions in `<steps_to_remediate>`.
-        2.  Apply the fixes to the code provided in `<original_code>`.
-        3.  Generate a JSON object according to the specified `<output_format>`.
-        4.  The JSON object must be the only thing you return and use ```json code fences. Do not add any text before or after it.
-        5.  The "files" object in the JSON should only contain files that were actually modified. Do not include unchanged files.
+        Fix the identified issues in the code and return only the files which are modified in same format.
         </instructions>
-    
         <output_format>
+        Return a JSON object with the following fields (**no other text or explanations**) and enclose ```json code fences:
         ```json
         {{
           "files": {{
-            "path/to/modified_file_1.tf": "<the entire content of the modified file and as escaped JSON string>",
-            "path/to/modified_file_2.tf": "<the entire content of the modified file and as escaped JSON string>"
+            "path/to/modified_file_1.tf": "<modified file contents as escaped JSON string>",
+            "path/to/modified_file_2.tf": "<modified file contents as escaped JSON string>"
           }},
           "commit_message": "Fix: A short, clear explanation of the fix based on the root cause analysis.",
           "branch_name": "fix: Short branch name based on the root cause analysis with unique 10 digit number",
@@ -168,6 +163,7 @@ def remediate_code(repo_files_content, steps_to_remediate):
         }}
         ```
         </output_format>
+        </task>
         """
 
     logger.info("Prompt for remediation: %s", prompt)
