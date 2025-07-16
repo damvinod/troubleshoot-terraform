@@ -111,7 +111,7 @@ jobs:
             --invocation-type RequestResponse \
             --payload "{
               \"repo_name\": \"${{ github.repository }}\",
-              \"logs_url\": \"${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${failed_job_id}/logs\",
+              \"logs_url\": \"${{ github.api_url }}/repos/${{ github.repository }}/actions/jobs/${failed_job_id}/logs\",
               \"branch_name\": \"${{ github.ref_name }}\"
             }" \
             /dev/null
