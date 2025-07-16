@@ -80,20 +80,8 @@ def fetch_github_actions_details(logs_url):
         logs_response = requests.get(logs_url, headers=GITHUB_HEADERS, timeout=60)
         logs_response.raise_for_status()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            zip_path = os.path.join(temp_dir, "logs.zip")
-
-            with open(zip_path, 'wb') as f:
-                f.write(logs_response.content)
-
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                try:
-                    with zip_ref.open('0_terraform.txt') as tf_log:
-                        log_content = tf_log.read().decode('utf-8')
-                        return extract_error_with_context(log_content)
-                except KeyError:
-                    logger.warning("0_terraform.txt not found in logs zip")
-                    return "Terraform log file not found in workflow artifacts."
+        log_content = logs_response.text
+        return extract_error_with_context(log_content)
 
     except requests.exceptions.HTTPError as http_err:
         logger.error(f"HTTP error occurred while fetching GitHub Actions details: {http_err}")
@@ -103,11 +91,11 @@ def fetch_github_actions_details(logs_url):
         raise
 
 def extract_error_with_context(log_content):
-    error_logs = []
-    for line in log_content.splitlines():
+    lines = log_content.splitlines()
+    for idx, line in enumerate(lines):
         if "error" in line.lower():
-            error_logs.append(line.strip())
-    return "\n".join(error_logs)
+            return "\n".join(lines[idx:]).strip()
+    return ""
 
 def get_steps_to_remediate(repo_files_content, error_message):
     specific_use_case = f"""
