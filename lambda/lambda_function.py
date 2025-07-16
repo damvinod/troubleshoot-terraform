@@ -99,10 +99,7 @@ def get_steps_to_remediate(repo_files_content, error_message):
 
     prompt = f"""
         <task>
-        You are an expert in troubleshooting Terraform code issues. Your goal is to provide a complete solution that not only fixes the immediate error but also aligns with industry best practices.
-        
-        You will be given a Terraform error message and the content of the relevant files from a Git repository.
-        </task>
+        You are an expert in troubleshooting Terraform code issues. Below is the full log of GitHub actions, identify the error_message from the logs and use the contents from a Git repository.
 
         <error_message>
         {error_message}
@@ -113,15 +110,9 @@ def get_steps_to_remediate(repo_files_content, error_message):
         </repo_files_content>
         
         <instructions>
-        Carefully analyze the error message in the context of the provided repository files and generate a response with the following markdown structure. Do not add any other commentary.
-    
-        ### Root Cause Analysis
-        Explain what the error message means and the specific reason it is occurring based on the provided code.
-    
-        ### Step-by-Step Resolution
-        Provide clear, numbered steps to fix the issue. Reference file paths and line numbers where possible.
-        Provide clear, numbered steps to fix the issue. Reference file paths and line numbers where possible.
+        Provide step-by-step instructions on how to resolve the error by looking into error_message and take into account the repo_files_content while suggesting the fix.
         </instructions>
+        </task>
         """
 
     logger.info("Prompt to get the steps for remediation: %s", prompt)
