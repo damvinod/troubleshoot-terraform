@@ -1,4 +1,1 @@
-variable "github_pat" {
-  type      = string
-  sensitive = true
-}
+{"variable": {"github_pat": {"type": "string", "sensitive": "true"}}}
