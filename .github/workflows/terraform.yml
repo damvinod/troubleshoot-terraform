@@ -18,6 +18,7 @@ jobs:
       run:
         shell: bash
     outputs:
+      init_outcome: ${{ steps.init.outcome }}
       validate_outcome: ${{ steps.validate.outcome }}
       plan_outcome: ${{ steps.plan.outcome }}
       apply_outcome: ${{ steps.apply.outcome }}
@@ -59,6 +60,7 @@ jobs:
           restore-keys: terraform-${{ runner.os }}-${{ runner.arch }}-${{ env.stack }}-
 
       - name: Terraform Init
+        id: init
         run: TF_PLUGIN_CACHE_DIR="${HOME}/.terraform.d/plugin-cache" terraform init
 
       - name: Terraform Validate
@@ -82,6 +84,7 @@ jobs:
         shell: bash
     needs: terraform
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && failure() && (
+      needs.terraform.outputs.init_outcome == 'failure' ||
       needs.terraform.outputs.validate_outcome == 'failure' ||
       needs.terraform.outputs.plan_outcome == 'failure' ||
       needs.terraform.outputs.apply_outcome == 'failure'
