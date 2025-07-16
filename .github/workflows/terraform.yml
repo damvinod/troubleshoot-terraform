@@ -18,7 +18,6 @@ jobs:
       run:
         shell: bash
     outputs:
-      job_id: ${{ github.job }}
       validate_outcome: ${{ steps.validate.outcome }}
       plan_outcome: ${{ steps.plan.outcome }}
       apply_outcome: ${{ steps.apply.outcome }}
