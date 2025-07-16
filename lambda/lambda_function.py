@@ -42,7 +42,7 @@ def lambda_handler(event, context):
         return final_response
 
     except KeyError as ke:
-        logger.error(f"Key error: {str(ke)}")
+        logger.error("Key error: {str(ke)}")
         final_response = {'response': f"Missing required information: {str(ke)}"}
         return final_response
 
@@ -74,7 +74,7 @@ def fetch_files_from_github(repo_name, branch_name):
 def fetch_github_actions_details(logs_url):
 
     try:
-        logger.info(f"Fetching logs from logs_url: {logs_url}")
+        logger.info("Fetching logs from logs_url: {logs_url}")
         logs_response = requests.get(logs_url, headers=GITHUB_HEADERS, timeout=60)
         logs_response.raise_for_status()
 
@@ -82,10 +82,10 @@ def fetch_github_actions_details(logs_url):
         return extract_error_with_context(log_content)
 
     except requests.exceptions.HTTPError as http_err:
-        logger.error(f"HTTP error occurred while fetching GitHub Actions details: {http_err}")
+        logger.error("HTTP error occurred while fetching GitHub Actions details: {http_err}")
         raise
     except Exception as e:
-        logger.error(f"Error occurred while fetching GitHub Actions details: {e}")
+        logger.error("Error occurred while fetching GitHub Actions details: {e}")
         raise
 
 def extract_error_with_context(log_content):
@@ -171,16 +171,20 @@ def create_new_branch(fixed_code, repo_name):
     fixed_code_json = json.loads(fixed_code.lstrip("```json").split("```")[0].strip())
     logger.info("Fixed Code after stripping: %s", fixed_code_json)
 
-    new_branch_name = fixed_code_json.get("branch_name")
-    commit_message = fixed_code_json.get("commit_message")
-    pr_title = fixed_code_json.get("pr_title")
-    pr_body = fixed_code_json.get("pr_body")
+    new_branch_name = fixed_code_json['branch_name']
+    commit_message = fixed_code_json['commit_message']
+    pr_title = fixed_code_json['pr_title']
+    pr_body = fixed_code_json['pr_body']
 
     for filename, content in fixed_code_json.get("files").items():
         files[filename] = content.strip()
 
-    # Parse repository path
-    logger.info(f"Parsed repository path: {repo_name}")
+    logger.info("New branch name: {new_branch_name}")
+    logger.info("Commit Message: {commit_message}")
+    logger.info("PR Title: {pr_title}")
+    logger.info("PR body: {pr_body}")
+
+    logger.info("Parsed repository path: {repo_name}")
 
     # Get the base commit SHA
     base_commit = requests.get(
@@ -188,7 +192,7 @@ def create_new_branch(fixed_code, repo_name):
         headers=GITHUB_HEADERS
     ).json()["object"]["sha"]
 
-    logger.info(f"Main base_commit sha: {base_commit}")
+    logger.info("Main base_commit sha: {base_commit}")
     # Check if the branch already exists
     if requests.get(
             f"https://api.github.com/repos/{repo_name}/git/refs/heads/{new_branch_name}",
@@ -196,7 +200,7 @@ def create_new_branch(fixed_code, repo_name):
     ).status_code == 200:
         raise ValueError(f"Branch {new_branch_name} already exists.")
 
-    logger.info(f"Branch not exists so creating: {new_branch_name}")
+    logger.info("Branch not exists so creating: {new_branch_name}")
 
     # Create the new branch
     response = requests.post(
@@ -206,9 +210,9 @@ def create_new_branch(fixed_code, repo_name):
     )
 
     if response.status_code == 201:
-        logger.info(f"Branch created: {new_branch_name}")
+        logger.info("Branch created: {new_branch_name}")
     else:
-        logger.error(f"Failed to create branch {new_branch_name}. Response: {response.status_code}, {response.text}")
+        logger.error("Failed to create branch {new_branch_name}. Response: {response.status_code}, {response.text}")
         raise Exception(f"Failed to create branch {new_branch_name}.")
 
     # Create blobs for each file
@@ -271,10 +275,10 @@ def create_pull_request(repo_name, new_branch_name, base_branch, title, body):
     )
 
     if response.status_code == 201:
-        logger.info(f"Pull request created successfully: {response.json().get('html_url')}")
+        logger.info("Pull request created successfully: {response.json().get('html_url')}")
         return response.json().get('html_url')
     else:
-        logger.error(f"Failed to create pull request. Response: {response.status_code}, {response.text}")
+        logger.error("Failed to create pull request. Response: {response.status_code}, {response.text}")
         raise Exception("Failed to create pull request.")
 
 def invoke_bedrock_model(prompt):
@@ -302,5 +306,5 @@ def invoke_bedrock_model(prompt):
         return response_body['results'][0]['outputText']
 
     except Exception as e:
-        logger.error(f"Error invoking Bedrock model: {e}")
+        logger.error("Error invoking Bedrock model: {e}")
         raise
