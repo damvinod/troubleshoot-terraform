@@ -82,7 +82,7 @@ jobs:
       run:
         shell: bash
     needs: terraform
-    if: ${{ failure() && needs.terraform.result == 'failure'  && (
+    if: ${{ failure() && (
       needs.terraform.outputs.validate_outcome == 'failure' ||
       needs.terraform.outputs.plan_outcome == 'failure' ||
       needs.terraform.outputs.apply_outcome == 'failure'
@@ -96,6 +96,14 @@ jobs:
 
       - name: Invoke troubleshoot-terraform Lambda function on failure
         run: |
+          echo "Checking for failed jobs in run ${{ github.run_id }}"
+
+          failed_job_id=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs \
+            | jq -r '.jobs[] | select(.conclusion=="failure") | .id' | head -n1)
+
+          echo "First failed job ID: $failed_job_id"
+          
           aws lambda invoke \
             --function-name terraform-troubleshoot-lambda \
             --region us-east-1 \
@@ -103,7 +111,7 @@ jobs:
             --invocation-type RequestResponse \
             --payload '{
               "repo_name": "${{ github.repository }}",
-              "logs_url": "${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${{ needs.terraform.outputs.job_id }}/logs",
+              "logs_url": "${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${failed_job_id}/logs",
               "branch_name": "${{ github.ref_name }}"
             }' \
             /dev/null
