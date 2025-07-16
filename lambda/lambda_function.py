@@ -153,22 +153,24 @@ def remediate_code(repo_files_content, steps_to_remediate):
         2.  Apply the fixes to the code provided in `<repo_files_content>`.
         3.  Generate a single, valid JSON object as your final response.
         4.  **Your entire response must ONLY be the JSON object and nothing else.**
-        5.  The `files` object in the JSON should only contain files that were actually modified. Do not include unchanged files.
+        5.  The `files` object in the JSON should have the entire content of the modified file as a valid, escaped JSON string and do not use backticks (` `). Do not include unchanged files.
         6.  The final JSON object must follow this exact structure:
             ```json
             {{
               "files": {{
-                "path/to/modified_file_1.tf": "<the entire content of the modified file as a valid, escaped JSON string and do not use backticks (` `)>"
-                "path/to/modified_file_2.tf": "<the entire content of the modified file as a valid, escaped JSON string and do not use backticks (` `)>"
+                "path/to/modified_file_1.tf": "<file_content_as_valid_escaped_JSON_string>",
+                "path/to/modified_file_2.tf": "<file_content_as_valid_escaped_JSON_string>"
               }},
               "commit_message": "Fix: A short, clear explanation of the fix based on the root cause analysis.",
-              "branch_name": "fix/short-branch-name-with-unique-10-digit-number",
+              "branch_name": "fix: Short branch name based on the root cause analysis with unique 10 digit number",
               "pr_title": "Fix: A concise title for the pull request.",
               "pr_body": "A detailed description for the pull request, based on the Root Cause Analysis and Step-by-Step Resolution."
             }}
             ```
         </instructions>
         """
+
+    logger.info("Prompt for remediation: %s", prompt)
 
     fixed_code = invoke_bedrock_model(prompt)
 
