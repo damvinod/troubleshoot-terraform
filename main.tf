@@ -53,6 +53,6 @@ resource "aws_lambda_function" "my_lambda_function" {
   }
 }
 
-# resource "aws_s3_bucket" "bucket_test" {
-#   bucket = "test-12121212121212121212121212121212"
-# }
+resource "aws_s3_bucket" "bucket_test" {
+  bucket = "test-12121212121212121212121212121212"
+}
