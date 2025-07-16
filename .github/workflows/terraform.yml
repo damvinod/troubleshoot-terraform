@@ -109,9 +109,9 @@ jobs:
             --region us-east-1 \
             --cli-binary-format raw-in-base64-out \
             --invocation-type RequestResponse \
-            --payload '{
-              "repo_name": "${{ github.repository }}",
-              "logs_url": "${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${failed_job_id}/logs",
-              "branch_name": "${{ github.ref_name }}"
-            }' \
+            --payload "{
+              \"repo_name\": \"${{ github.repository }}\",
+              \"logs_url\": \"${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${failed_job_id}/logs\",
+              \"branch_name\": \"${{ github.ref_name }}\"
+            }" \
             /dev/null
