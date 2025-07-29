@@ -6,7 +6,7 @@ data "archive_file" "lambda_zip_archive" {
 
 data "archive_file" "lambda_zip_layer_archive" {
   type        = "zip"
-  source_dir  = "python"
+  source_dir  = "lambda_layer_build"
   output_path = "python_layer.zip"
 }
 

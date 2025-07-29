@@ -38,7 +38,7 @@ jobs:
           terraform_version: 1.11.4
 
       - name: Install dependencies and package Lambda function
-        run: pip install -r lambda/requirements.txt -t python/lib/python3.13/site-packages
+        run: pip install -r lambda/requirements.txt -t lambda_layer_build/python/ && ls -R lambda_layer_build/
 
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
