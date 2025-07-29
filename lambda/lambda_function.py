@@ -129,7 +129,6 @@ def remediate_code(repo_files_content, steps_to_remediate):
     prompt = f"""
         <task>
         You are an expert automated code modification agent. Your task is to apply a set of instructions to a codebase and return a valid JSON object containing the full, modified files.
-        </task>
 
         <steps_to_remediate>
         {steps_to_remediate}
