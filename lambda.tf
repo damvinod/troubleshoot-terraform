@@ -15,6 +15,7 @@ resource "aws_lambda_layer_version" "lambda_layer_version" {
   layer_name = "troubleshoot-terraform-layer"
 
   compatible_runtimes = ["python3.13"]
+  source_code_hash    = data.archive_file.lambda_zip_layer_archive.output_base64sha256
 }
 
 resource "aws_iam_role" "lambda_exec_role" {
