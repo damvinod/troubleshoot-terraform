@@ -4,6 +4,19 @@ data "archive_file" "lambda_zip_archive" {
   output_path = "lambda_function.zip"
 }
 
+data "archive_file" "lambda_zip_layer_archive" {
+  type        = "zip"
+  source_dir  = "python"
+  output_path = "python_layer.zip"
+}
+
+resource "aws_lambda_layer_version" "lambda_layer_version" {
+  filename   = data.archive_file.lambda_zip_layer_archive.output_path
+  layer_name = "troubleshoot-terraform-layer"
+
+  compatible_runtimes = ["python3.13"]
+}
+
 resource "aws_iam_role" "lambda_exec_role" {
   name = "my-lambda-exec-role"
   assume_role_policy = jsonencode({
@@ -45,6 +58,8 @@ resource "aws_lambda_function" "my_lambda_function" {
   source_code_hash = data.archive_file.lambda_zip_archive.output_base64sha256
   timeout          = 60
   memory_size      = 512
+
+  layers = [aws_lambda_layer_version.lambda_layer_version.arn]
 
   environment {
     variables = {
