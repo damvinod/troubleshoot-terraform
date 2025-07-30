@@ -151,7 +151,7 @@ def remediate_code(repo_files_content, steps_to_remediate):
           "commit_message": "Fix: A short, clear explanation of the fix based on the root cause analysis.",
           "branch_name": "fix/short-branch-name-based-on-root-cause",
           "pr_title": "Fix: A concise title for the pull request.",
-          "pr_body": "A detailed description of the pull request, based on the root cause analysis and resolution steps.",
+          "pr_body": "A detailed description of the pull request, based on the root cause analysis and resolution steps without special characters.",
           "files": {{
             "path/to/modified_file_1.tf": "<escaped string containing only valid modified Terraform code>",
             "path/to/modified_file_2.tf": "<escaped string containing only valid modified Terraform code>",
