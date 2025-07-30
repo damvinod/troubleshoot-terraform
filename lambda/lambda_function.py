@@ -143,6 +143,7 @@ def remediate_code(repo_files_content, steps_to_remediate):
         2. Apply only the changes described in the <steps_to_remediate>. If a step includes a code snippet, **ignore the snippet** and use only the text instructions to perform the modification.
         3. The "files" object in your JSON response **MUST contain the COMPLETE content of each modified file**. Do not return just diffs or partial content.
         4.  Return a single, valid JSON object enclosed in a `json` markdown code block, as shown in the format below.
+        5.  Make sure the changes have proper indentation and formatting and don't fail the `terraform validate` command.
         </instructions>
         <output_format>
         ```json
