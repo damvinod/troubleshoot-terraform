@@ -140,7 +140,7 @@ def remediate_code(repo_files_content, steps_to_remediate):
         
         <instructions>
         1.  Your source of truth for the original code is the `<repo_files_content>`.
-        2.  Apply the changes described in the `<steps_to_remediate>`. If the steps include a code snippet, **ignore the snippet** and use only the text instructions to perform the modification.
+        2.  Apply the changes described in the `<steps_to_remediate>` and don't do any other changes. If the steps include a code snippet, **ignore the snippet** and use only the text instructions to perform the modification.
         3.  The `files` object in your JSON response **MUST contain the COMPLETE and ENTIRE content of each modified file.** Do not return only the changed lines or blocks.
         4.  Return a single, valid JSON object enclosed in a `json` markdown code block, as shown in the format below.
         5.  Make sure the changes have proper indentation and formatting and don't fail the `terraform validate` command.
@@ -149,7 +149,7 @@ def remediate_code(repo_files_content, steps_to_remediate):
         ```json
         {{
           "commit_message": "Fix: A short, clear explanation of the fix based on the root cause analysis.",
-          "branch_name": "fix: Short branch name based on the root cause analysis with unique 10 digit number",
+          "branch_name": "fix: Short branch name based on the root cause analysis",
           "pr_title": "Fix: A concise title for the pull request.",
           "pr_body": "A detailed description for the pull request, based on the Root Cause Analysis and Step-by-Step Resolution.",
           "files": {{
