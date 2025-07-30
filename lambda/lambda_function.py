@@ -153,8 +153,8 @@ def remediate_code(repo_files_content, steps_to_remediate):
           "pr_title": "Fix: A concise title for the pull request.",
           "pr_body": "A detailed description of the pull request, based on the root cause analysis and resolution steps.",
           "files": {{
-            "path/to/modified_file_1.tf": "<modified file content as escaped JSON string>",
-            "path/to/modified_file_2.tf": "<modified file content as escaped JSON string>"
+            "path/to/modified_file_1.tf": "<escaped string containing the modified Terraform code>",
+            "path/to/modified_file_2.tf": "<escaped string containing the modified Terraform code>",
           }}
         }}
         ```
@@ -173,7 +173,7 @@ def remediate_code(repo_files_content, steps_to_remediate):
 def create_new_branch(fixed_code, repo_name):
     files = {}
 
-    fixed_code_json = json.loads(fixed_code.lstrip("```json").split("```")[0].strip())
+    fixed_code_json = json.loads(fixed_code.lstrip("```json").split("```")[0].strip().replace('`', ''))
     logger.info("Fixed Code after stripping: %s", fixed_code_json)
 
     new_branch_name = fixed_code_json['branch_name']
