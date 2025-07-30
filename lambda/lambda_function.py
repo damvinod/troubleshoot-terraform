@@ -112,7 +112,7 @@ def get_steps_to_remediate(repo_files_content, error_message):
         <instructions>
         1.  Provide a detailed "Root Cause Analysis" of the error.
         2.  Provide numbered, "Step-by-Step Resolution" instructions.
-        3.  **Crucially, do NOT include any corrected code snippets or full code files in your response.** Your only output should be the analysis and the instructional steps.
+        3.  **Crucially, do NOT include any corrected code snippets or full code files in your response or how to test it.** Your only output should be the analysis and the instructional steps.
         </instructions>
         </task>
         """
@@ -128,7 +128,7 @@ def remediate_code(repo_files_content, steps_to_remediate):
 
     prompt = f"""
         <task>
-        You are an expert automated code modification agent. Your task is to apply a set of instructions to a codebase and return a valid JSON object containing the full, modified files.
+        You are an expert automated code modification agent. Your task is to apply a set of instructions to a codebase and return a valid JSON object containing the **entire** content of any **modified files only**.
 
         <steps_to_remediate>
         {steps_to_remediate}
@@ -139,22 +139,21 @@ def remediate_code(repo_files_content, steps_to_remediate):
         </repo_files_content>
         
         <instructions>
-        1.  Your source of truth for the original code is the `<repo_files_content>`.
-        2.  Apply the changes described in the `<steps_to_remediate>` and don't do any other changes. If the steps include a code snippet, **ignore the snippet** and use only the text instructions to perform the modification.
-        3.  The `files` object in your JSON response **MUST contain the COMPLETE and ENTIRE content of each modified file.** Do not return only the changed lines or blocks.
+        1. Your only source of truth for the original code is the <repo_files_content> section.
+        2. Apply only the changes described in the <steps_to_remediate>. If a step includes a code snippet, **ignore the snippet** and use only the text instructions to perform the modification.
+        3. The "files" object in your JSON response **MUST contain the COMPLETE content of each modified file**. Do not return just diffs or partial content.
         4.  Return a single, valid JSON object enclosed in a `json` markdown code block, as shown in the format below.
-        5.  Make sure the changes have proper indentation and formatting and don't fail the `terraform validate` command.
         </instructions>
         <output_format>
         ```json
         {{
           "commit_message": "Fix: A short, clear explanation of the fix based on the root cause analysis.",
-          "branch_name": "fix: Short branch name based on the root cause analysis",
+          "branch_name": "fix/short-branch-name-based-on-root-cause",
           "pr_title": "Fix: A concise title for the pull request.",
-          "pr_body": "A detailed description for the pull request, based on the Root Cause Analysis and Step-by-Step Resolution.",
+          "pr_body": "A detailed description of the pull request, based on the root cause analysis and resolution steps.",
           "files": {{
-            "path/to/modified_file_1.tf": "<modified file contents as escaped JSON string>",
-            "path/to/modified_file_2.tf": "<modified file contents as escaped JSON string>"
+            "path/to/modified_file_1.tf": "<modified file content as escaped JSON string>",
+            "path/to/modified_file_2.tf": "<modified file content as escaped JSON string>"
           }}
         }}
         ```
