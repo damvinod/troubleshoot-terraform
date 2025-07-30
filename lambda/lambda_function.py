@@ -153,8 +153,8 @@ def remediate_code(repo_files_content, steps_to_remediate):
           "pr_title": "Fix: A concise title for the pull request.",
           "pr_body": "A detailed description of the pull request, based on the root cause analysis and resolution steps.",
           "files": {{
-            "path/to/modified_file_1.tf": "<escaped string containing the modified Terraform code>",
-            "path/to/modified_file_2.tf": "<escaped string containing the modified Terraform code>",
+            "path/to/modified_file_1.tf": "<escaped string containing only valid modified Terraform code>",
+            "path/to/modified_file_2.tf": "<escaped string containing only valid modified Terraform code>",
           }}
         }}
         ```
