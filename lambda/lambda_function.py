@@ -128,7 +128,7 @@ def remediate_code(repo_files_content, steps_to_remediate):
 
     prompt = f"""
         <task>
-        You are an expert automated code modification agent. Your task is to apply a set of instructions to a codebase and return a valid JSON object containing the **entire** content of any **modified files only**.
+        You are an expert automated code modification agent. Your task is to apply a set of instructions to a codebase and return a valid JSON object containing the full, modified files.
 
         <steps_to_remediate>
         {steps_to_remediate}
@@ -141,9 +141,9 @@ def remediate_code(repo_files_content, steps_to_remediate):
         <instructions>
         1. Your only source of truth for the original code is the <repo_files_content> section.
         2. Apply only the changes described in the <steps_to_remediate>. If a step includes a code snippet, **ignore the snippet** and use only the text instructions to perform the modification.
-        3. The "files" object in your JSON response **MUST contain the COMPLETE content of each modified file**. Do not return just diffs or partial content.
-        4.  Return a single, valid JSON object enclosed in a `json` markdown code block, as shown in the format below.
-        5.  Make sure the changes have proper indentation and formatting and don't fail the `terraform validate` command.
+        3. The `files` object in your JSON response **MUST contain the COMPLETE content of each modified file**. Do not return just diffs or partial content.
+        4. Return a single, valid JSON object enclosed in a `json` markdown code block, as shown in the format below.
+        5. Make sure the changes have proper indentation and formatting and don't fail the `terraform validate` command.
         </instructions>
         <output_format>
         ```json
